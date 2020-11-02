@@ -27,6 +27,9 @@ bool Is_RPN()
         else if (('a' <= s[i] && s[i] <= 'c') || s[i] == '1') {
             ++balance;
         }
+        if(balance < 1) {
+            return false;
+        }
     }
     return (balance == 1);
 }
