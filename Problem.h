@@ -3,14 +3,7 @@
 #include <string>
 #include <vector>
 
-// cтрктура регулярных выражений
-struct RegExp {
-  std::string str; //ОПЗ регу-го выр-я
-  std::vector<int> length; //вектор из мин. длин для каждого остатка
-  RegExp(const std::string &str, std::vector<int> &v) : str(str), length(v) {}
-};
-
-std::stack<RegExp> exps; // стэк распоз. рег. выр-е в ОБЗ
+std::stack<std::vector<int>> exps; // стэк распоз. рег. выр-е в ОБЗ
 
 // проверка на праивльность записания в ОБЗ
 bool Is_RPN(const std::string &s) {
@@ -28,15 +21,15 @@ bool Is_RPN(const std::string &s) {
   return (balance == 1);
 }
 // операция суммирования
-void Plus(const std::string &s, int k) {
-  RegExp right = exps.top();
+void Plus(int k) {
+  std::vector<int> right = exps.top();
   exps.pop();
-  RegExp left = exps.top();
+  std::vector<int> left = exps.top();
   exps.pop();
   std::vector<int> v(k, -1);
   for (int i = 0; i < k; ++i) {
-    int l = left.length[i];
-    int r = right.length[i];
+    int l = left[i];
+    int r = right[i];
     if (l == -1) {
       v[i] = r;
     } else if (r == -1) {
@@ -45,20 +38,16 @@ void Plus(const std::string &s, int k) {
       v[i] = std::min(l, r);
     }
   }
-  exps.push(RegExp(left.str + right.str + '+', v));
+  exps.push(v);
 }
 // операция конкатенации
-void Concatenation(const std::string &s, int k) {
-  RegExp right = exps.top();
-  exps.pop();
-  RegExp left = exps.top();
-  exps.pop();
+std::vector<int> Concatenation(const std::vector<int>& right, const std::vector<int>& left, int k) {
   std::vector<int> v(k, -1);
   for (int i = 0; i < k; ++i) {
     int ans = -1;
     for (int j = 0; j < k; ++j) {
-      int l = left.length[j];
-      int r = right.length[(i - j + k) % k];
+      int l = left[j];
+      int r = right[(i - j + k) % k];
       if (l != -1 && r != -1) {
         if (ans == -1) {
           ans = l + r;
@@ -69,31 +58,41 @@ void Concatenation(const std::string &s, int k) {
     }
     v[i] = ans;
   }
-  exps.push(RegExp(left.str + right.str + '.', v));
-}
-//Замыкание Клини
-void Kleene_Star(std::string &s, int k, int &z) {
-  s[z] = '1';
-  s.insert(z + 1, "+");
-  std::string new_str = "";
-  std::string mult = "";
-  for (int i = 1; i < k; ++i) {
-    new_str += exps.top().str + "1+";
-    mult += '.';
-  }
-  new_str += mult;
-  s.insert(z + 2, new_str);
-  --z;
+  return v;
 }
 
-void Build_Reg_Expr(std::string &s, int k) {
+std::vector<int> Concat_by_Power(const std::vector<int>& v, int power, int k) {
+    if(power == 1) {
+        return v;
+    }
+    if(power  % 2 == 1) {
+        return Concatenation(Concat_by_Power(v,power - 1,k),v,k);
+    } else {
+        std::vector<int> u =  Concat_by_Power(v,power/2,k);
+        return Concatenation(u,u,k);
+    }
+}
+
+//Замыкание Клини
+void Kleene_Star(int k, int &z) {
+    std::vector<int> v = exps.top();
+    exps.pop();
+    v[0] = 0;
+    exps.push(Concat_by_Power(v,k,k));
+}
+
+void Build_Reg_Expr(std::string &s, int k, int l) {
   for (int z = 0; z < s.size(); ++z) {
     if (s[z] == '+') {
-      Plus(s, k);
+      Plus(k);
     } else if (s[z] == '.') {
-      Concatenation(s, k);
+        std::vector<int> right = exps.top();
+        exps.pop();
+        std::vector<int> left = exps.top();
+        exps.pop();
+        exps.push(Concatenation(right,left,k));
     } else if (s[z] == '*') {
-      Kleene_Star(s, k, z);
+      Kleene_Star(k, z);
     } else {
       std::vector<int> v(k, -1);
       if (s[z] == '1') {
@@ -101,17 +100,15 @@ void Build_Reg_Expr(std::string &s, int k) {
       } else {
         v[!(k == 1)] = 1;
       }
-      std::string str;
-      str += s[z];
-      exps.push(RegExp(str, v));
+      exps.push(v);
     }
   }
 }
 
 void Get_Minimal_String(std::string &s, int k, int l) {
   if (Is_RPN(s)) {
-    Build_Reg_Expr(s, k);
-    int n = exps.top().length[l];
+    Build_Reg_Expr(s, k, l);
+    int n = exps.top()[l];
     if (n != -1) {
       std::cout << n;
     } else {
