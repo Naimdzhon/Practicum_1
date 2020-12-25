@@ -2,6 +2,19 @@
 #include <iostream>
 
 int main() {
+  std::ios::sync_with_stdio(0);
+  std::cin.tie(0);
+  std::cout.tie(0);
+  {
+    std::string s;
+    int k, l;
+    std::cin >> s >> k >> l;
+    std::cout << "My_OWN_Test" << '\n'
+              << "Input:" << '\t' << "String: " << s << '\t' << "Divider: " << k
+              << '\t' << "Remainder: " << l << '\n';
+    std::cout << "Output:" << '\t';
+    Get_Minimal_String(s, k, l);
+  }
   {
     std::string s = "ab+c.aba..bac.+.+";
     int k = 3;
